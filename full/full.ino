@@ -59,7 +59,7 @@ void setup() {
   //update_firmware(firmware_version);
 
   // Subscribe to topics
-  client.subscribe("green/settings", 2);
+  client.subscribe("green/settings/" + node_id, 2);
 
   // Run MQTT loop
   client.loop();
@@ -143,7 +143,7 @@ void pump() {
     times++;
 
     // SECURITY MEASURE: Turn the system off if it has been pumping for too long
-    if (times * pump_interval > rtc_data.max_pumping_time) {
+    if (times * pump_interval > rtc_data.max_pumping_time * 1000) { // comparison is done in milliseconds
       // Set status to idle
       current_status = 0;
       update_moisture(); // Just to send new status
