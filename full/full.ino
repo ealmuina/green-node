@@ -20,7 +20,7 @@ const int relay_pin = 5; // Pump relay output at GPIO 5
 
 // Control values
 const String firmware_version = "1";
-const double sleep_period = 3600e6; // 1 hour = 3600 seconds
+const double sleep_period = 3600e6; // 1 hour in microseconds
 const int pump_interval = 1000; // Pumping will be done in 1 second intervals
 
 // Global variables
@@ -76,6 +76,9 @@ void setup() {
 
   // Save rtc_data into RTC memory
   write_rtc_data();
+
+  // Unsubscribe from topics for getting retained messages next time
+  client.unsubscribe("green/settings/" + node_id);
 
   // Get into next deep sleep cycle
   ESP.deepSleep(sleep_period);
@@ -169,7 +172,7 @@ void read_rtc_data() {
       // Set default values
       rtc_data.min_moisture = -480;
       rtc_data.max_moisture = -285;
-      rtc_data.max_pumping_time = 30000;
+      rtc_data.max_pumping_time = 30; // in seconds
     }
   }
 }
