@@ -29,7 +29,7 @@ MQTTClient client(1024);
 DynamicJsonDocument doc(1024);
 String node_id = "";
 int moisture_value = 0;
-int current_status = 0; // 0: idle, 1: pumping
+bool is_open = false;
 
 // Structure which will be stored in RTC memory.
 // First field is CRC32, which is calculated based on the
@@ -135,7 +135,7 @@ void pump() {
   digitalWrite(relay_pin, HIGH);
 
   // Set status to pumping
-  current_status = 1;
+  is_open = true;
 
   // Wait until soil is wet enough
   int times = 0;
@@ -148,7 +148,7 @@ void pump() {
     // SECURITY MEASURE: Turn the system off if it has been pumping for too long
     if (times * pump_interval > rtc_data.max_pumping_time * 1000) { // comparison is done in milliseconds
       // Set status to idle
-      current_status = 0;
+      is_open = false;
       update_moisture(); // Just to send new status
       ESP.deepSleep(0); // Sleep forever
     }
@@ -158,7 +158,7 @@ void pump() {
   digitalWrite(relay_pin, LOW);
 
   // Set status to idle
-  current_status = 0;
+  is_open = false;
 }
 
 void read_rtc_data() {
@@ -189,7 +189,7 @@ void update_moisture() {
   doc["min_moisture"] = rtc_data.min_moisture;
   doc["max_moisture"] = rtc_data.max_moisture;
   doc["max_pumping_time"] = rtc_data.max_pumping_time;
-  doc["status"] = current_status;
+  doc["is_open"] = is_open;
   doc["version"] = firmware_version;
 
   String payload = "";
