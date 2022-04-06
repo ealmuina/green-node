@@ -73,7 +73,6 @@ void setup() {
 
   // Read moisture sensor
   update_moisture();
-  delay(500);
 
   // Soil is dry. Pump water!
   if (moisture_value < rtc_data.min_moisture) {
@@ -152,7 +151,7 @@ void pump() {
     times++;
 
     // SECURITY MEASURE: Turn the system off if it has been pumping for too long
-    if (times * pump_interval > rtc_data.max_pumping_time * 1000) { // comparison is done in milliseconds
+    if (times * pump_interval > rtc_data.max_pumping_time) {
       // Set status to idle
       is_open = false;
       update_moisture(); // Just to send new status
@@ -178,7 +177,7 @@ void read_rtc_data() {
       // Set default values
       rtc_data.min_moisture = -480;
       rtc_data.max_moisture = -285;
-      rtc_data.max_pumping_time = 30; // in seconds
+      rtc_data.max_pumping_time = 20000; // in milliseconds
     }
   }
 }
@@ -201,6 +200,7 @@ void update_moisture() {
   String payload = "";
   serializeJson(doc, payload);
   client.publish("green/record", payload);
+  delay(500);
 }
 
 void write_rtc_data() {
