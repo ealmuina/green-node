@@ -59,7 +59,8 @@ void setup() {
   //update_firmware(firmware_version);
 
   // Subscribe to topics
-  client.subscribe("green/settings/" + node_id, 2);
+  String settings_topic = "green/settings/" + node_id;
+  client.subscribe(settings_topic, 2);
 
   // Run MQTT loop
   client.loop();
@@ -78,7 +79,7 @@ void setup() {
   write_rtc_data();
 
   // Unsubscribe from topics for getting retained messages next time
-  client.unsubscribe("green/settings/" + node_id);
+  client.unsubscribe(settings_topic);
 
   // Get into next deep sleep cycle
   ESP.deepSleep(sleep_period);
