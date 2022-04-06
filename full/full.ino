@@ -28,6 +28,7 @@ WiFiClient net;
 MQTTClient client(1024);
 DynamicJsonDocument doc(1024);
 String node_id = "";
+String settings_topic = "";
 int moisture_value = 0;
 bool is_open = false;
 
@@ -45,12 +46,16 @@ void setup() {
   // Load rtc_data from RTC memory
   read_rtc_data();
 
-  // Execute daily tasks
+  // Set pins
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(relay_pin, OUTPUT); // enable relay pin for output
 
   // Turn LED off
   digitalWrite(LED_BUILTIN, HIGH);
+
+  // Set node_id and node topics
+  node_id = String(ESP.getChipId());
+  settings_topic = "green/settings/" + node_id;
 
   // Connect to WiFi and MQTT broker
   connect();
@@ -59,8 +64,8 @@ void setup() {
   //update_firmware(firmware_version);
 
   // Subscribe to topics
-  String settings_topic = "green/settings/" + node_id;
   client.subscribe(settings_topic, 2);
+  delay(500);
 
   // Run MQTT loop
   client.loop();
@@ -85,10 +90,10 @@ void setup() {
   ESP.deepSleep(sleep_period);
 }
 
-uint32_t calculate_CRC32(const uint32_t *data, size_t length) {
+uint32_t calculate_CRC32(const uint8_t *data, size_t length) {
   uint32_t crc = 0xffffffff;
   while (length--) {
-    uint32_t c = *data++;
+    uint8_t c = *data++;
     for (uint32_t i = 0x80; i > 0; i >>= 1) {
       bool bit = crc & 0x80000000;
       if (c & i) {
@@ -106,7 +111,8 @@ uint32_t calculate_CRC32(const uint32_t *data, size_t length) {
 void callback(String &topic, String &payload) {
   try {
     deserializeJson(doc, payload);
-    if (topic == "green/settings/" + node_id) {
+
+    if (topic == settings_topic) {
       rtc_data.min_moisture = doc.containsKey("min_moisture") ? doc["min_moisture"] : rtc_data.min_moisture;
       rtc_data.max_moisture = doc.containsKey("max_moisture") ? doc["max_moisture"] : rtc_data.max_moisture;
       rtc_data.max_pumping_time = doc.containsKey("max_pumping_time") ? doc["max_pumping_time"] : rtc_data.max_pumping_time;
@@ -122,7 +128,6 @@ void connect() {
   }
 
   // Connecting to a mqtt broker
-  node_id = String(ESP.getChipId());
   client.begin(mqtt_broker, mqtt_port, net);
   client.onMessage(callback);
   client.setCleanSession(false);
@@ -166,9 +171,9 @@ void read_rtc_data() {
   if (ESP.rtcUserMemoryRead(0, (uint32_t*) &rtc_data, sizeof(rtc_data))) {
     uint32_t expected_crc = rtc_data.crc32;
     rtc_data.crc32 = 0;
-    uint32_t crc_of_data = calculate_CRC32((uint32_t*) &rtc_data, sizeof(rtc_data));
+    uint32_t crc_of_data = calculate_CRC32((uint8_t*) &rtc_data, sizeof(rtc_data));
 
-    if (crc_of_data != rtc_data.crc32) {
+    if (crc_of_data != expected_crc) {
       // CRC32 in RTC memory doesn't match CRC32 of data. Data is probably invalid!
       // Set default values
       rtc_data.min_moisture = -480;
@@ -201,7 +206,7 @@ void update_moisture() {
 void write_rtc_data() {
   // Update CRC32 of data
   rtc_data.crc32 = 0;
-  rtc_data.crc32 = calculate_CRC32((uint32_t*) &rtc_data, sizeof(rtc_data));
+  rtc_data.crc32 = calculate_CRC32((uint8_t*) &rtc_data, sizeof(rtc_data));
 
   // Write struct to RTC memory
   ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtc_data, sizeof(rtc_data));
