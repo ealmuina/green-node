@@ -19,14 +19,11 @@ MQTTClient client(1024);
 DynamicJsonDocument doc(1024);
 String node_id = "";
 String settings_topic = "";
-bool is_open;
+bool is_open = false;
 
 void setup() {
   // Set pins
   pinMode(relay_pin, OUTPUT); // enable relay pin for output
-
-  // Initialize internal variables
-  is_open = false;
 
   // Set node_id and node topics
   node_id = String(ESP.getChipId());
@@ -61,7 +58,7 @@ void start_pumping() {
   // Turn the pump on
   digitalWrite(relay_pin, HIGH);
 
-  // SECURITY MEASURE: Turn the system off if it has been pumping (under the same command) for too long
+  // SECURITY MEASURE: Turn the system off if it has been pumping for too long
   int times = 0;
   while (is_open && times * pump_interval < max_pumping_time) {
     client.loop();

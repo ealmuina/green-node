@@ -6,4 +6,6 @@
 
 void connect(WiFiClient &net, MQTTClient &client, String &node_id, bool clean_session);
 
+uint32_t calculate_CRC32(const uint8_t *data, size_t length);
+
 #endif
