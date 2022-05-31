@@ -12,7 +12,7 @@ const int relay_pin = 5; // Pump relay output at GPIO 5
 // Control values
 const String firmware_version = "1";
 const double sleep_period = 3600e6; // 1 hour in microseconds
-const int pump_interval = 1000; // Pumping will be done in 1 second intervals
+const int pump_interval = 500; // Pumping will be done in 1 second intervals (this + update_moisture delay)
 
 // Global variables
 WiFiClient net;
@@ -30,7 +30,7 @@ struct {
   uint32_t crc32;
   int min_moisture;
   int max_moisture;
-  int max_pumping_time;
+  int max_open_time;
 } rtc_data;
 
 void setup() {
@@ -54,7 +54,8 @@ void setup() {
   // Check for updates and apply them
   update_firmware(firmware_version);
 
-  // Subscribe to topics
+  // Set callback and subscribe to topics
+  client.onMessage(callback);
   client.subscribe(settings_topic, 2);
   delay(500);
 
@@ -87,7 +88,7 @@ void callback(String &topic, String &payload) {
     if (topic == settings_topic) {
       rtc_data.min_moisture = doc.containsKey("min_moisture") ? doc["min_moisture"] : rtc_data.min_moisture;
       rtc_data.max_moisture = doc.containsKey("max_moisture") ? doc["max_moisture"] : rtc_data.max_moisture;
-      rtc_data.max_pumping_time = doc.containsKey("max_pumping_time") ? doc["max_pumping_time"] : rtc_data.max_pumping_time;
+      rtc_data.max_open_time = doc.containsKey("max_open_time") ? doc["max_open_time"] : rtc_data.max_open_time;
     }
   } catch (...) {}
 }
@@ -108,7 +109,7 @@ void pump() {
     times++;
 
     // SECURITY MEASURE: Turn the system off if it has been pumping for too long
-    if (times * pump_interval > rtc_data.max_pumping_time) {
+    if (times * pump_interval > rtc_data.max_open_time) {
       // Set status to idle
       is_open = false;
       update_moisture(); // Just to send new status
@@ -134,7 +135,7 @@ void read_rtc_data() {
       // Set default values
       rtc_data.min_moisture = -10001;
       rtc_data.max_moisture = -10000;
-      rtc_data.max_pumping_time = 20000; // in milliseconds
+      rtc_data.max_open_time = 10000; // in milliseconds
     }
   }
 }
@@ -150,7 +151,7 @@ void update_moisture() {
   doc["moisture"] = moisture_value;
   doc["min_moisture"] = rtc_data.min_moisture;
   doc["max_moisture"] = rtc_data.max_moisture;
-  doc["max_pumping_time"] = rtc_data.max_pumping_time;
+  doc["max_open_time"] = rtc_data.max_open_time;
   doc["is_open"] = is_open;
   doc["version"] = firmware_version;
 
