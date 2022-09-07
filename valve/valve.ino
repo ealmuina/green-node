@@ -9,6 +9,7 @@ const int moisture_pin = A0; // Soil Moisture Sensor input at Analog PIN A0
 const int relay_pin = 5; // Pump relay output at GPIO 5
 
 // Control values
+const String node_type = "2";
 const String firmware_version = "1";
 const double sleep_period = 3600e6; // 1 hour in microseconds
 const int pump_interval = 1000; // Pumping will be done in 1 second intervals
@@ -35,7 +36,7 @@ void setup() {
   connect(net, client, node_id, false);
 
   // Check for updates and apply them
-  //update_firmware(firmware_version);
+  update_firmware(node_type, firmware_version);
 
   // Set callback and subscribe to topics
   client.onMessage(callback);
@@ -80,6 +81,7 @@ void update_moisture() {
   doc["node_id"] = node_id;
   doc["moisture"] = moisture_value;
   doc["is_open"] = is_open;
+  doc["node_type"] = node_type;
   doc["version"] = firmware_version;
 
   String payload = "";

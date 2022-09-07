@@ -9,6 +9,6 @@
 
 void set_clock();
 
-void update_firmware(String firmware_version);
+void update_firmware(String node_type, String firmware_version);
 
 #endif
