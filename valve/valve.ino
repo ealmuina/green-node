@@ -9,11 +9,11 @@ const int moisture_pin = A0; // Soil Moisture Sensor input at Analog PIN A0
 const int relay_pin = 5; // Pump relay output at GPIO 5
 
 // Control values
-const String node_type = "2";
-const String firmware_version = "1";
+const String node_type = "2"; // VALVE
+const String firmware_version = "3";
 const double sleep_period = 3600e6; // 1 hour in microseconds
 const int pump_interval = 1000; // Pumping will be done in 1 second intervals
-const int max_pumping_time = 60000;
+int max_open_time = 10000;
 
 // Global variables
 WiFiClient net;
@@ -64,6 +64,7 @@ void callback(String &topic, String &payload) {
 
     if (topic == settings_topic) {
       is_open = doc.containsKey("is_open") ? doc["is_open"] : false;
+      max_open_time = doc.containsKey("max_open_time") ? doc["is_open"] : false;
     }
 
     doc.clear();
@@ -80,6 +81,7 @@ void update_moisture() {
 
   doc["node_id"] = node_id;
   doc["moisture"] = moisture_value;
+  doc["max_open_time"] = max_open_time;
   doc["is_open"] = is_open;
   doc["node_type"] = node_type;
   doc["version"] = firmware_version;
@@ -96,7 +98,7 @@ void irrigate() {
 
   // SECURITY MEASURE: Turn the system off if it has been pumping for too long
   int times = 0;
-  while (is_open && times * pump_interval < max_pumping_time) {
+  while (is_open && times * pump_interval < max_open_time) {
     client.loop();
     delay(pump_interval);
     times++;
