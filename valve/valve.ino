@@ -10,7 +10,7 @@ const int relay_pin = 5; // Pump relay output at GPIO 5
 
 // Control values
 const String node_type = "2"; // VALVE
-const String firmware_version = "3";
+const String firmware_version = "4";
 const double sleep_period = 3600e6; // 1 hour in microseconds
 const int pump_interval = 1000; // Pumping will be done in 1 second intervals
 int max_open_time = 10000;
@@ -88,7 +88,7 @@ void update_moisture() {
 
   String payload = "";
   serializeJson(doc, payload);
-  client.publish("green/record", payload);
+  client.publish("green/record", payload, false, 2);
   delay(500);
 }
 
